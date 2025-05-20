@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,22 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				// Custom colors for the job hunt tracker
+				purple: {
+					DEFAULT: '#6E59A5',
+					light: '#9b87f5',
+					dark: '#4A3D70'
+				},
+				blue: {
+					DEFAULT: '#0EA5E9',
+					light: '#38BDF8',
+					dark: '#0369A1'
+				},
+				orange: {
+					DEFAULT: '#F97316',
+					light: '#FB923C',
+					dark: '#C2410C'
 				}
 			},
 			borderRadius: {
@@ -84,11 +101,21 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-subtle': {
+					'0%, 100%': { opacity: 1 },
+					'50%': { opacity: 0.8 }
+				},
+				'slide-in-right': {
+					'0%': { transform: 'translateX(100%)', opacity: 0 },
+					'100%': { transform: 'translateX(0)', opacity: 1 }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-subtle': 'pulse-subtle 2s ease-in-out infinite',
+				'slide-in-right': 'slide-in-right 0.3s ease-out'
 			}
 		}
 	},
