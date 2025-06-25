@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bell, Menu, Search } from 'lucide-react';
+import { Bell, Menu, Search, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -8,14 +8,36 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface TopNavProps {
   onMenuClick: () => void;
 }
 
 export function TopNav({ onMenuClick }: TopNavProps) {
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <header className="h-16 px-4 border-b flex items-center justify-between bg-background">
       <div className="flex items-center md:hidden">
@@ -80,14 +102,24 @@ export function TopNav({ onMenuClick }: TopNavProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="h-8 w-8 cursor-pointer">
-              <AvatarFallback className="bg-purple text-white">US</AvatarFallback>
+              <AvatarFallback className="bg-purple text-white">
+                {user?.email?.charAt(0).toUpperCase() || 'U'}
+              </AvatarFallback>
             </Avatar>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+              {user?.email}
+            </div>
+            <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
             <DropdownMenuItem>Help</DropdownMenuItem>
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut} className="text-red-600">
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
