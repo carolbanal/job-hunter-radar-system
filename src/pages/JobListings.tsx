@@ -103,9 +103,33 @@ const JobListings = () => {
   const [activeFilters, setActiveFilters] = React.useState([
     "Python", "Remote", "Match > 70%"
   ]);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [selectedSource, setSelectedSource] = React.useState('');
+  const [sortBy, setSortBy] = React.useState('match');
   
   const removeFilter = (filter: string) => {
     setActiveFilters(activeFilters.filter(f => f !== filter));
+  };
+
+  const clearAllFilters = () => {
+    setActiveFilters([]);
+    setSearchTerm('');
+    setSelectedSource('');
+  };
+
+  const handleSearch = (value: string) => {
+    setSearchTerm(value);
+    console.log('Search term:', value);
+  };
+
+  const handleSourceChange = (value: string) => {
+    setSelectedSource(value);
+    console.log('Selected source:', value);
+  };
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value);
+    console.log('Sort by:', value);
   };
   
   return (
@@ -126,12 +150,14 @@ const JobListings = () => {
                 type="search"
                 placeholder="Search jobs..."
                 className="pl-9"
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
               />
             </div>
           </div>
           
           <div className="flex gap-4 flex-1">
-            <Select>
+            <Select value={selectedSource} onValueChange={handleSourceChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Job Source" />
               </SelectTrigger>
@@ -144,7 +170,7 @@ const JobListings = () => {
               </SelectContent>
             </Select>
             
-            <Select>
+            <Select value={sortBy} onValueChange={handleSortChange}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Sort By" />
               </SelectTrigger>
@@ -170,18 +196,28 @@ const JobListings = () => {
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">Active filters:</span>
           {activeFilters.map((filter) => (
-            <Badge key={filter} variant="secondary" className="bg-background">
+            <Badge 
+              key={filter} 
+              variant="outline" 
+              className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+            >
               {filter}
               <button 
-                className="ml-1 hover:text-destructive" 
+                className="ml-1 hover:text-destructive font-bold" 
                 onClick={() => removeFilter(filter)}
+                aria-label={`Remove ${filter} filter`}
               >
                 ×
               </button>
             </Badge>
           ))}
           {activeFilters.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-7 text-xs">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="h-7 text-xs"
+              onClick={clearAllFilters}
+            >
               Clear all
             </Button>
           )}
@@ -194,7 +230,7 @@ const JobListings = () => {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" onClick={() => console.log('Toggle sort order')}>
             Match Score <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
           </Button>
         </div>
@@ -206,7 +242,11 @@ const JobListings = () => {
         ))}
         
         <div className="flex justify-center my-6">
-          <Button variant="outline" className="w-full max-w-xs">
+          <Button 
+            variant="outline" 
+            className="w-full max-w-xs"
+            onClick={() => console.log('Load more jobs')}
+          >
             Load more jobs <ChevronDown className="ml-1 h-4 w-4" />
           </Button>
         </div>
