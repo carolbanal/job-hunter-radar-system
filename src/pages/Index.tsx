@@ -16,47 +16,10 @@ import {
   Clock,
   Filter,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
-
-const mockJobs = [
-  {
-    id: '1',
-    title: 'Senior Python Developer',
-    company: 'TechCorp Inc',
-    location: 'Remote',
-    salary: '$80K - $120K',
-    description: 'We are seeking an experienced Python developer with expertise in web scraping, data processing, and building automated systems. The ideal candidate will have...',
-    tags: ['Python', 'Web Scraping', 'API Development', 'Pandas'],
-    source: 'OnlineJobs.ph',
-    postedAt: '2 hours ago',
-    matchScore: 92,
-    isNew: true,
-  },
-  {
-    id: '2',
-    title: 'Data Engineer',
-    company: 'DataFlow Systems',
-    location: 'Remote (US)',
-    salary: '$90K - $130K',
-    description: 'Looking for a skilled Data Engineer to join our team to build and maintain data pipelines, implement ETL processes, and develop data models...',
-    tags: ['Python', 'PostgreSQL', 'ETL', 'AWS'],
-    source: 'RemoteOK',
-    postedAt: '5 hours ago',
-    matchScore: 85,
-    isNew: true,
-  },
-  {
-    id: '3',
-    title: 'Full Stack Developer',
-    company: 'WebSolutions Ltd',
-    location: 'Remote (APAC)',
-    description: 'Join our dynamic team to build responsive web applications using React on the frontend and Python/Django on the backend. Experience with API integration...',
-    tags: ['React', 'Python', 'Django', 'REST API'],
-    source: 'We Work Remotely',
-    postedAt: 'Yesterday',
-    matchScore: 78,
-  },
-];
+import { useJobs } from '@/hooks/useJobs';
+import { calculateMatchScore, extractJobTags, formatRelativeTime, isJobNew } from '@/utils/jobHelpers';
 
 const alerts = [
   {
@@ -81,6 +44,87 @@ const alerts = [
 ];
 
 const Index = () => {
+  const { data: jobs, isLoading, error, refetch } = useJobs();
+
+  // Transform jobs data for JobCard component
+  const transformedJobs = React.useMemo(() => {
+    if (!jobs) return [];
+    
+    return jobs.map(job => ({
+      id: job.id.toString(),
+      title: job.title || 'Untitled Position',
+      company: job.company || 'Unknown Company',
+      location: job.location || 'Location not specified',
+      salary: job.salary || undefined,
+      description: job.description || 'No description available',
+      tags: extractJobTags(job),
+      source: job.source || 'Unknown Source',
+      postedAt: formatRelativeTime(job.posted_at || job.scraped_at),
+      matchScore: calculateMatchScore(job),
+      isNew: isJobNew(job.posted_at || job.scraped_at),
+      link: job.link,
+    }));
+  }, [jobs]);
+
+  // Get top 3 most recent jobs with highest match scores
+  const topJobs = React.useMemo(() => {
+    return transformedJobs
+      .sort((a, b) => b.matchScore - a.matchScore)
+      .slice(0, 3);
+  }, [transformedJobs]);
+
+  // Calculate stats from real data
+  const totalJobs = jobs?.length || 0;
+  const highMatchJobs = transformedJobs.filter(job => job.matchScore >= 75).length;
+  const newJobsToday = transformedJobs.filter(job => job.isNew).length;
+  
+  // Get latest scrape time
+  const latestScrapeTime = React.useMemo(() => {
+    if (!jobs || jobs.length === 0) return 'Never';
+    const latestJob = jobs.reduce((latest, job) => {
+      const jobTime = new Date(job.scraped_at || job.posted_at || 0);
+      const latestTime = new Date(latest.scraped_at || latest.posted_at || 0);
+      return jobTime > latestTime ? job : latest;
+    });
+    return formatRelativeTime(latestJob.scraped_at || latestJob.posted_at);
+  }, [jobs]);
+
+  const handleRefreshData = async () => {
+    console.log('Refreshing job data...');
+    await refetch();
+  };
+
+  const handleApplyToJob = (job: typeof topJobs[0]) => {
+    if (job.link) {
+      window.open(job.link, '_blank');
+    } else {
+      console.log('No job link available for:', job.title);
+    }
+  };
+
+  const handleTrackJob = (job: typeof topJobs[0]) => {
+    console.log('Tracking job:', job.title);
+    // TODO: Implement job tracking functionality
+  };
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Error loading dashboard data</p>
+            <p className="text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : 'An unknown error occurred'}
+            </p>
+            <Button onClick={handleRefreshData} className="mt-4">
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="flex justify-between items-center mb-6">
@@ -90,10 +134,15 @@ const Index = () => {
         </div>
         <div className="flex gap-3">
           <Button variant="outline" className="hidden md:flex">
-            <Clock className="mr-2 h-4 w-4" /> Last scrape: 2 hours ago
+            <Clock className="mr-2 h-4 w-4" /> Last scrape: {latestScrapeTime}
           </Button>
-          <Button>
-            <Sparkles className="mr-2 h-4 w-4" /> Refresh Data
+          <Button onClick={handleRefreshData} disabled={isLoading}>
+            {isLoading ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-2 h-4 w-4" />
+            )}
+            Refresh Data
           </Button>
         </div>
       </div>
@@ -101,24 +150,24 @@ const Index = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <StatCard 
           title="Total Jobs Found"
-          value="380"
-          change="+24 since yesterday"
+          value={totalJobs.toString()}
+          change={`+${newJobsToday} new today`}
           trend="up"
           icon={<Briefcase size={24} />}
           className="stat-card-gradient-1"
         />
         <StatCard 
-          title="Applications Submitted"
-          value="57"
-          change="+3 this week"
+          title="High Match Jobs"
+          value={highMatchJobs.toString()}
+          change={`${Math.round((highMatchJobs / totalJobs) * 100) || 0}% of total`}
           trend="up"
           icon={<CheckCircle2 size={24} />}
           className="stat-card-gradient-2"
         />
         <StatCard 
-          title="Interview Rate"
-          value="23%"
-          change="+5% from last month"
+          title="New Jobs Today"
+          value={newJobsToday.toString()}
+          change="In the last 24 hours"
           trend="up"
           icon={<BarChart3 size={24} />}
           className="stat-card-gradient-3"
@@ -138,23 +187,45 @@ const Index = () => {
               <Button variant="outline" size="sm">
                 <Filter className="mr-2 h-4 w-4" /> Filter
               </Button>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={() => window.location.href = '/jobs'}>
                 View All <ArrowUpRight className="ml-1 h-4 w-4" />
               </Button>
             </div>
           </div>
           
-          <div className="space-y-4">
-            {mockJobs.map((job) => (
-              <JobCard key={job.id} {...job} />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                <p className="text-muted-foreground">Loading recent job matches...</p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {topJobs.map((job) => (
+                <JobCard 
+                  key={job.id} 
+                  {...job} 
+                  onApply={() => handleApplyToJob(job)}
+                  onTrack={() => handleTrackJob(job)}
+                />
+              ))}
+              {topJobs.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No job matches found</p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Try refreshing the data or check back later
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         
         <div>
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Recent Alerts</h2>
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => window.location.href = '/alerts'}>
               <BellRing className="mr-2 h-4 w-4" /> Manage Alerts
             </Button>
           </div>
@@ -163,7 +234,7 @@ const Index = () => {
             {alerts.map((alert, index) => (
               <RecentAlert key={index} {...alert} />
             ))}
-            <Button variant="outline" className="w-full mt-2">
+            <Button variant="outline" className="w-full mt-2" onClick={() => window.location.href = '/alerts'}>
               View all alerts
             </Button>
           </div>

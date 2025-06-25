@@ -26,21 +26,22 @@ import { calculateMatchScore, extractJobTags, formatRelativeTime, isJobNew } fro
 
 const JobListings = () => {
   const { data: jobs, isLoading, error } = useJobs();
-  const [activeFilters, setActiveFilters] = React.useState([
-    "Python", "Remote", "Match > 70%"
-  ]);
+  const [activeFilters, setActiveFilters] = React.useState<string[]>([]);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [selectedSource, setSelectedSource] = React.useState('');
   const [sortBy, setSortBy] = React.useState('match');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc'>('desc');
   
   const removeFilter = (filter: string) => {
     setActiveFilters(activeFilters.filter(f => f !== filter));
+    console.log('Removed filter:', filter);
   };
 
   const clearAllFilters = () => {
     setActiveFilters([]);
     setSearchTerm('');
     setSelectedSource('');
+    console.log('Cleared all filters');
   };
 
   const handleSearch = (value: string) => {
@@ -58,11 +59,39 @@ const JobListings = () => {
     console.log('Sort by:', value);
   };
 
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    console.log('Sort order:', sortOrder === 'asc' ? 'desc' : 'asc');
+  };
+
+  const applyFilters = () => {
+    console.log('Applying filters:', { searchTerm, selectedSource, sortBy, activeFilters });
+    // TODO: Implement advanced filtering logic
+  };
+
+  const handleApplyToJob = (job: any) => {
+    if (job.link) {
+      window.open(job.link, '_blank');
+    } else {
+      console.log('No job link available for:', job.title);
+    }
+  };
+
+  const handleTrackJob = (job: any) => {
+    console.log('Tracking job:', job.title);
+    // TODO: Implement job tracking functionality
+  };
+
+  const handleBookmarkJob = (job: any) => {
+    console.log('Bookmarking job:', job.title);
+    // TODO: Implement job bookmarking functionality
+  };
+
   // Transform jobs data for JobCard component
   const transformedJobs = React.useMemo(() => {
     if (!jobs) return [];
     
-    return jobs.map(job => ({
+    let filteredJobs = jobs.map(job => ({
       id: job.id.toString(),
       title: job.title || 'Untitled Position',
       company: job.company || 'Unknown Company',
@@ -74,7 +103,61 @@ const JobListings = () => {
       postedAt: formatRelativeTime(job.posted_at || job.scraped_at),
       matchScore: calculateMatchScore(job),
       isNew: isJobNew(job.posted_at || job.scraped_at),
+      link: job.link,
     }));
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      filteredJobs = filteredJobs.filter(job => 
+        job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        job.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    // Apply source filter
+    if (selectedSource && selectedSource !== 'all') {
+      filteredJobs = filteredJobs.filter(job => 
+        job.source.toLowerCase().includes(selectedSource.toLowerCase())
+      );
+    }
+
+    // Apply sorting
+    filteredJobs.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortBy) {
+        case 'match':
+          comparison = a.matchScore - b.matchScore;
+          break;
+        case 'date':
+          // Sort by scraped_at or posted_at
+          const aDate = new Date(jobs.find(j => j.id.toString() === a.id)?.scraped_at || jobs.find(j => j.id.toString() === a.id)?.posted_at || 0);
+          const bDate = new Date(jobs.find(j => j.id.toString() === b.id)?.scraped_at || jobs.find(j => j.id.toString() === b.id)?.posted_at || 0);
+          comparison = aDate.getTime() - bDate.getTime();
+          break;
+        case 'salary':
+          // Basic salary comparison (this is simplified)
+          const aSalary = a.salary ? parseInt(a.salary.replace(/[^\d]/g, '')) || 0 : 0;
+          const bSalary = b.salary ? parseInt(b.salary.replace(/[^\d]/g, '')) || 0 : 0;
+          comparison = aSalary - bSalary;
+          break;
+        default:
+          comparison = 0;
+      }
+      
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    return filteredJobs;
+  }, [jobs, searchTerm, selectedSource, sortBy, sortOrder]);
+
+  // Get unique sources for filter dropdown
+  const availableSources = React.useMemo(() => {
+    if (!jobs) return [];
+    const sources = [...new Set(jobs.map(job => job.source).filter(Boolean))];
+    return sources;
   }, [jobs]);
 
   if (error) {
@@ -123,10 +206,11 @@ const JobListings = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Sources</SelectItem>
-                <SelectItem value="onlinejobs">OnlineJobs.ph</SelectItem>
-                <SelectItem value="indeed">Indeed</SelectItem>
-                <SelectItem value="remoteok">Remote OK</SelectItem>
-                <SelectItem value="wwr">We Work Remotely</SelectItem>
+                {availableSources.map(source => (
+                  <SelectItem key={source} value={source.toLowerCase()}>
+                    {source}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
             
@@ -137,16 +221,16 @@ const JobListings = () => {
               <SelectContent>
                 <SelectItem value="match">Match Score</SelectItem>
                 <SelectItem value="date">Date Posted</SelectItem>
-                <SelectItem value="salary">Salary (High to Low)</SelectItem>
+                <SelectItem value="salary">Salary</SelectItem>
               </SelectContent>
             </Select>
           </div>
           
-          <Button variant="outline" className="flex-none">
+          <Button variant="outline" className="flex-none" onClick={() => console.log('Advanced filters not implemented yet')}>
             <Filter className="mr-2 h-4 w-4" /> Advanced Filters
           </Button>
           
-          <Button variant="default" className="flex-none">
+          <Button variant="default" className="flex-none" onClick={applyFilters}>
             <SlidersHorizontal className="mr-2 h-4 w-4" /> Apply Filters
           </Button>
         </div>
@@ -155,6 +239,36 @@ const JobListings = () => {
         
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-medium">Active filters:</span>
+          {searchTerm && (
+            <Badge 
+              variant="outline" 
+              className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+            >
+              Search: "{searchTerm}"
+              <button 
+                className="ml-1 hover:text-destructive font-bold" 
+                onClick={() => setSearchTerm('')}
+                aria-label="Remove search filter"
+              >
+                ×
+              </button>
+            </Badge>
+          )}
+          {selectedSource && selectedSource !== 'all' && (
+            <Badge 
+              variant="outline" 
+              className="bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+            >
+              Source: {selectedSource}
+              <button 
+                className="ml-1 hover:text-destructive font-bold" 
+                onClick={() => setSelectedSource('')}
+                aria-label="Remove source filter"
+              >
+                ×
+              </button>
+            </Badge>
+          )}
           {activeFilters.map((filter) => (
             <Badge 
               key={filter} 
@@ -171,7 +285,7 @@ const JobListings = () => {
               </button>
             </Badge>
           ))}
-          {activeFilters.length > 0 && (
+          {(activeFilters.length > 0 || searchTerm || (selectedSource && selectedSource !== 'all')) && (
             <Button 
               variant="ghost" 
               size="sm" 
@@ -186,12 +300,13 @@ const JobListings = () => {
       
       <div className="flex justify-between items-center mb-4">
         <div className="text-sm text-muted-foreground">
-          Showing <span className="font-medium">{transformedJobs.length}</span> jobs
+          Showing <span className="font-medium">{transformedJobs.length}</span> of <span className="font-medium">{jobs?.length || 0}</span> jobs
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
-          <Button variant="ghost" size="sm" onClick={() => console.log('Toggle sort order')}>
-            Match Score <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
+          <Button variant="ghost" size="sm" onClick={toggleSortOrder}>
+            {sortBy === 'match' ? 'Match Score' : sortBy === 'date' ? 'Date Posted' : 'Salary'} 
+            <ArrowUpDown className="ml-1 h-3.5 w-3.5" />
           </Button>
         </div>
       </div>
@@ -207,16 +322,22 @@ const JobListings = () => {
         <>
           <div className="space-y-4">
             {transformedJobs.map((job) => (
-              <JobCard key={job.id} {...job} />
+              <JobCard 
+                key={job.id} 
+                {...job} 
+                onApply={() => handleApplyToJob(job)}
+                onTrack={() => handleTrackJob(job)}
+                onBookmark={() => handleBookmarkJob(job)}
+              />
             ))}
           </div>
           
-          {transformedJobs.length > 0 && (
+          {transformedJobs.length > 0 && transformedJobs.length < (jobs?.length || 0) && (
             <div className="flex justify-center my-6">
               <Button 
                 variant="outline" 
                 className="w-full max-w-xs"
-                onClick={() => console.log('Load more jobs')}
+                onClick={() => console.log('Load more jobs functionality not implemented yet')}
               >
                 Load more jobs <ChevronDown className="ml-1 h-4 w-4" />
               </Button>

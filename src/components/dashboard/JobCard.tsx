@@ -18,6 +18,11 @@ export interface JobCardProps {
   isNew?: boolean;
   isSaved?: boolean;
   className?: string;
+  link?: string | null;
+  onApply?: () => void;
+  onTrack?: () => void;
+  onBookmark?: () => void;
+  onClick?: () => void;
 }
 
 export function JobCard({
@@ -33,12 +38,58 @@ export function JobCard({
   isNew = false,
   isSaved = false,
   className,
+  link,
+  onApply,
+  onTrack,
+  onBookmark,
+  onClick,
 }: JobCardProps) {
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onApply) {
+      onApply();
+    } else if (link) {
+      window.open(link, '_blank');
+    } else {
+      console.log('No apply action or link available');
+    }
+  };
+
+  const handleTrack = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onTrack) {
+      onTrack();
+    } else {
+      console.log('Track functionality not implemented yet');
+    }
+  };
+
+  const handleBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onBookmark) {
+      onBookmark();
+    } else {
+      console.log('Bookmark functionality not implemented yet');
+    }
+  };
+
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      console.log('Job details view not implemented yet');
+      // TODO: Implement job details modal or page
+    }
+  };
+
   return (
-    <div className={cn(
-      "p-5 border rounded-xl job-card-gradient transition-shadow hover:shadow-md",
-      className
-    )}>
+    <div 
+      className={cn(
+        "p-5 border rounded-xl job-card-gradient transition-shadow hover:shadow-md cursor-pointer",
+        className
+      )}
+      onClick={handleCardClick}
+    >
       <div className="flex justify-between items-start">
         <div>
           <div className="flex items-center">
@@ -70,6 +121,7 @@ export function JobCard({
             variant="ghost"
             size="icon"
             className={cn(isSaved && "text-purple")}
+            onClick={handleBookmark}
           >
             <Bookmark className="h-5 w-5" />
           </Button>
@@ -102,10 +154,10 @@ export function JobCard({
         </div>
         
         <div className="flex space-x-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={handleTrack}>
             Track
           </Button>
-          <Button size="sm">
+          <Button size="sm" onClick={handleApply}>
             Apply <ExternalLink className="ml-1 h-3.5 w-3.5" />
           </Button>
         </div>
