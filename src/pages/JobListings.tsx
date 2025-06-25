@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Search,
   ArrowUpDown,
+  Loader2,
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -20,86 +21,11 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-
-// Extended mock data
-const mockJobs = [
-  {
-    id: '1',
-    title: 'Senior Python Developer',
-    company: 'TechCorp Inc',
-    location: 'Remote',
-    salary: '$80K - $120K',
-    description: 'We are seeking an experienced Python developer with expertise in web scraping, data processing, and building automated systems. The ideal candidate will have...',
-    tags: ['Python', 'Web Scraping', 'API Development', 'Pandas'],
-    source: 'OnlineJobs.ph',
-    postedAt: '2 hours ago',
-    matchScore: 92,
-    isNew: true,
-  },
-  {
-    id: '2',
-    title: 'Data Engineer',
-    company: 'DataFlow Systems',
-    location: 'Remote (US)',
-    salary: '$90K - $130K',
-    description: 'Looking for a skilled Data Engineer to join our team to build and maintain data pipelines, implement ETL processes, and develop data models...',
-    tags: ['Python', 'PostgreSQL', 'ETL', 'AWS'],
-    source: 'RemoteOK',
-    postedAt: '5 hours ago',
-    matchScore: 85,
-    isNew: true,
-  },
-  {
-    id: '3',
-    title: 'Full Stack Developer',
-    company: 'WebSolutions Ltd',
-    location: 'Remote (APAC)',
-    description: 'Join our dynamic team to build responsive web applications using React on the frontend and Python/Django on the backend. Experience with API integration...',
-    tags: ['React', 'Python', 'Django', 'REST API'],
-    source: 'We Work Remotely',
-    postedAt: 'Yesterday',
-    matchScore: 78,
-  },
-  {
-    id: '4',
-    title: 'Machine Learning Engineer',
-    company: 'AI Innovations',
-    location: 'Remote (Worldwide)',
-    salary: '$100K - $150K',
-    description: 'We\'re looking for a Machine Learning Engineer to help develop and deploy ML models. You\'ll work with large datasets and implement algorithms...',
-    tags: ['Python', 'TensorFlow', 'Machine Learning', 'Data Science'],
-    source: 'Indeed',
-    postedAt: 'Yesterday',
-    matchScore: 89,
-    isNew: true,
-  },
-  {
-    id: '5',
-    title: 'Data Analyst',
-    company: 'Insight Analytics',
-    location: 'Remote (Europe)',
-    salary: '$60K - $80K',
-    description: 'Seeking a Data Analyst to transform raw data into actionable insights. You\'ll be responsible for analyzing data, creating reports, and presenting findings...',
-    tags: ['Python', 'SQL', 'Data Visualization', 'Excel'],
-    source: 'OnlineJobs.ph',
-    postedAt: '2 days ago',
-    matchScore: 76,
-  },
-  {
-    id: '6',
-    title: 'Python Backend Developer',
-    company: 'ServerTech Solutions',
-    location: 'Remote (US)',
-    salary: '$85K - $110K',
-    description: 'Join our backend team to develop and maintain scalable web services and APIs. You\'ll work with Python, Django, and databases to create robust solutions...',
-    tags: ['Python', 'Django', 'PostgreSQL', 'REST API'],
-    source: 'We Work Remotely',
-    postedAt: '2 days ago',
-    matchScore: 82,
-  },
-];
+import { useJobs } from '@/hooks/useJobs';
+import { calculateMatchScore, extractJobTags, formatRelativeTime, isJobNew } from '@/utils/jobHelpers';
 
 const JobListings = () => {
+  const { data: jobs, isLoading, error } = useJobs();
   const [activeFilters, setActiveFilters] = React.useState([
     "Python", "Remote", "Match > 70%"
   ]);
@@ -131,6 +57,40 @@ const JobListings = () => {
     setSortBy(value);
     console.log('Sort by:', value);
   };
+
+  // Transform jobs data for JobCard component
+  const transformedJobs = React.useMemo(() => {
+    if (!jobs) return [];
+    
+    return jobs.map(job => ({
+      id: job.id.toString(),
+      title: job.title || 'Untitled Position',
+      company: job.company || 'Unknown Company',
+      location: job.location || 'Location not specified',
+      salary: job.salary || undefined,
+      description: job.description || 'No description available',
+      tags: extractJobTags(job),
+      source: job.source || 'Unknown Source',
+      postedAt: formatRelativeTime(job.posted_at || job.scraped_at),
+      matchScore: calculateMatchScore(job),
+      isNew: isJobNew(job.posted_at || job.scraped_at),
+    }));
+  }, [jobs]);
+
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Error loading jobs</p>
+            <p className="text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : 'An unknown error occurred'}
+            </p>
+          </div>
+        </div>
+      </MainLayout>
+    );
+  }
   
   return (
     <MainLayout>
@@ -226,7 +186,7 @@ const JobListings = () => {
       
       <div className="flex justify-between items-center mb-4">
         <div className="text-sm text-muted-foreground">
-          Showing <span className="font-medium">380</span> jobs
+          Showing <span className="font-medium">{transformedJobs.length}</span> jobs
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Sort by:</span>
@@ -236,21 +196,43 @@ const JobListings = () => {
         </div>
       </div>
       
-      <div className="space-y-4">
-        {mockJobs.map((job) => (
-          <JobCard key={job.id} {...job} />
-        ))}
-        
-        <div className="flex justify-center my-6">
-          <Button 
-            variant="outline" 
-            className="w-full max-w-xs"
-            onClick={() => console.log('Load more jobs')}
-          >
-            Load more jobs <ChevronDown className="ml-1 h-4 w-4" />
-          </Button>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading jobs...</p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="space-y-4">
+            {transformedJobs.map((job) => (
+              <JobCard key={job.id} {...job} />
+            ))}
+          </div>
+          
+          {transformedJobs.length > 0 && (
+            <div className="flex justify-center my-6">
+              <Button 
+                variant="outline" 
+                className="w-full max-w-xs"
+                onClick={() => console.log('Load more jobs')}
+              >
+                Load more jobs <ChevronDown className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
+          )}
+          
+          {transformedJobs.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No jobs found</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Try adjusting your search criteria or check back later
+              </p>
+            </div>
+          )}
+        </>
+      )}
     </MainLayout>
   );
 };
