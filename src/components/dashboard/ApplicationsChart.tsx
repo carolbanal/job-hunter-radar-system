@@ -2,13 +2,14 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+// For now, using zero data as requested until real application tracking is implemented
 const data = [
-  { name: 'Applied', value: 24, fill: '#6E59A5' },
-  { name: 'Phone Screen', value: 16, fill: '#9b87f5' },
-  { name: 'Interview', value: 9, fill: '#0EA5E9' },
-  { name: 'Final Round', value: 5, fill: '#38BDF8' },
-  { name: 'Offer', value: 2, fill: '#F97316' },
-  { name: 'Accepted', value: 1, fill: '#FB923C' },
+  { name: 'Applied', value: 0, fill: '#6E59A5' },
+  { name: 'Phone Screen', value: 0, fill: '#9b87f5' },
+  { name: 'Interview', value: 0, fill: '#0EA5E9' },
+  { name: 'Final Round', value: 0, fill: '#38BDF8' },
+  { name: 'Offer', value: 0, fill: '#F97316' },
+  { name: 'Accepted', value: 0, fill: '#FB923C' },
 ];
 
 const CustomTooltip = ({ active, payload }: any) => {
@@ -43,6 +44,13 @@ export function ApplicationsChart() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        {data.every(item => item.value === 0) && (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">
+              No applications tracked yet. Start applying to jobs to see your pipeline progress.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

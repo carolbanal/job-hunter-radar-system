@@ -2,14 +2,15 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
+// For now, using zero data as requested
 const data = [
-  { date: 'May 14', jobs: 42 },
-  { date: 'May 15', jobs: 47 },
-  { date: 'May 16', jobs: 55 },
-  { date: 'May 17', jobs: 53 },
-  { date: 'May 18', jobs: 60 },
-  { date: 'May 19', jobs: 58 },
-  { date: 'May 20', jobs: 65 },
+  { date: 'Day 1', jobs: 0 },
+  { date: 'Day 2', jobs: 0 },
+  { date: 'Day 3', jobs: 0 },
+  { date: 'Day 4', jobs: 0 },
+  { date: 'Day 5', jobs: 0 },
+  { date: 'Day 6', jobs: 0 },
+  { date: 'Day 7', jobs: 0 },
 ];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -52,6 +53,13 @@ export function TrendChart() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+        {data.every(item => item.jobs === 0) && (
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground">
+              No job posting trends available yet. Data will appear as jobs are tracked over time.
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

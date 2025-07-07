@@ -138,13 +138,19 @@ export function JobCard({
       
       <p className="mt-3 text-sm text-muted-foreground line-clamp-2">{description}</p>
       
-      <div className="mt-4 flex flex-wrap gap-2">
-        {tags.map((tag, i) => (
-          <Badge key={i} variant="secondary" className="bg-background">
-            {tag}
-          </Badge>
-        ))}
-      </div>
+      {tags.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {tags.map((tag, i) => (
+            <Badge 
+              key={i} 
+              variant="secondary" 
+              className="bg-secondary/80 text-secondary-foreground hover:bg-secondary/90 transition-colors"
+            >
+              {tag}
+            </Badge>
+          ))}
+        </div>
+      )}
       
       <div className="mt-4 flex items-center justify-between">
         <div className="flex items-center text-xs text-muted-foreground">
