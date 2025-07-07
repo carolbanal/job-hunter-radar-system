@@ -20,6 +20,16 @@ export const useJobs = () => {
   return useQuery({
     queryKey: ['jobs'],
     queryFn: async () => {
+      console.log('Fetching jobs from Supabase...');
+      
+      // First, get the total count
+      const { count } = await supabase
+        .from('jobs')
+        .select('*', { count: 'exact', head: true });
+      
+      console.log('Total jobs in database:', count);
+      
+      // Then fetch all jobs without limit
       const { data, error } = await supabase
         .from('jobs')
         .select('*')
@@ -30,6 +40,7 @@ export const useJobs = () => {
         throw error;
       }
       
+      console.log('Jobs fetched successfully:', data?.length || 0);
       return data as Job[];
     },
   });
